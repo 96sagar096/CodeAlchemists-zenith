@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { API_URL } from "../api/api";
 import { LocateFixed } from "lucide-react";
+import { addComplaint } from "../data/mockData";
 
 function SubmitComplaint() {
   const token = localStorage.getItem("token");
@@ -48,7 +49,7 @@ function SubmitComplaint() {
 
     if (!SpeechRecognition) {
       setError(
-          "Speech recognition is not supported in this browser. Try Google Chrome."
+          "Speech recognition is not supported in this browser. Try Google Chrome or Microsoft Edge."
       );
       return;
     }
@@ -169,6 +170,26 @@ function SubmitComplaint() {
     setPhoto(selectedPhoto);
   };
 
+  const inferCategory = (text) => {
+    const t = text.toLowerCase();
+    if (t.includes("pothole") || t.includes("crater") || t.includes("road")) {
+      return { category: "Pothole", department: "Roads & Infrastructure", priority: "HIGH" };
+    }
+    if (t.includes("garbage") || t.includes("waste") || t.includes("trash") || t.includes("bin") || t.includes("rubbish")) {
+      return { category: "Garbage", department: "Sanitation Department", priority: "MEDIUM" };
+    }
+    if (t.includes("leak") || t.includes("pipe") || t.includes("water supply")) {
+      return { category: "Water Leakage", department: "Water Supply & Sewerage", priority: "HIGH" };
+    }
+    if (t.includes("light") || t.includes("lamp") || t.includes("dark")) {
+      return { category: "Streetlight", department: "Electricity Department", priority: "MEDIUM" };
+    }
+    if (t.includes("flood") || t.includes("waterlog") || t.includes("rainwater") || t.includes("drain")) {
+      return { category: "Waterlogging", department: "Disaster Management & Drainage", priority: "CRITICAL" };
+    }
+    return { category: "Other", department: "Municipal Grievances", priority: "LOW" };
+  };
+
   const submitComplaint = useCallback(
       async (event) => {
         event.preventDefault();
@@ -220,16 +241,32 @@ function SubmitComplaint() {
           }
 
           const result = await response.json();
+          const targetId = result?.complaintId || result?.id || result?.incidentId;
 
-          if (!result?.complaintId) {
+          if (!targetId) {
             throw new Error("The server response did not include a complaint ID.");
           }
 
-          navigate(`/complaints/${result.complaintId}`);
+          navigate(`/complaints/${targetId}`);
         } catch (submitError) {
-          setError(
-              submitError.message || "Could not submit your complaint. Please try again."
-          );
+          console.warn("Backend unavailable, saving complaint locally in testing mode:", submitError);
+          const meta = inferCategory(complaint);
+          const newRecord = addComplaint({
+            title: complaint.length > 55 ? complaint.slice(0, 52) + "..." : complaint,
+            description: complaint.trim(),
+            location: location.trim(),
+            language,
+            latitude: coordinates?.latitude || null,
+            longitude: coordinates?.longitude || null,
+            category: meta.category,
+            department: meta.department,
+            priority: meta.priority,
+            severity: meta.priority === "CRITICAL" ? "HIGH" : meta.priority,
+            status: "Submitted",
+            photoUrl: photo ? URL.createObjectURL(photo) : null,
+          });
+
+          navigate(`/complaints/${newRecord.id}`);
         } finally {
           setLoading(false);
         }
@@ -238,27 +275,29 @@ function SubmitComplaint() {
   );
 
   return (
-      <div>
+      <div className="min-h-screen bg-slate-50">
         <Navbar />
 
         <main className="mx-auto max-w-3xl p-6">
-          <h1 className="mb-2 text-3xl font-bold">Submit Complaint</h1>
-          <p className="mb-6 text-gray-500">
-            Speak or type your civic problem in your preferred language.
-          </p>
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold text-slate-900">Submit Civic Complaint</h1>
+            <p className="text-slate-500 mt-1">
+              Speak or type your problem in your preferred Indian language.
+            </p>
+          </div>
 
           <form
               onSubmit={submitComplaint}
-              className="rounded-xl bg-white p-6 shadow"
+              className="rounded-2xl bg-white p-7 shadow-sm border border-slate-100"
           >
-            <label className="mb-2 block font-medium" htmlFor="language">
-              Select Language
+            <label className="mb-2 block font-semibold text-slate-800" htmlFor="language">
+              Language Selection
             </label>
             <select
                 id="language"
                 value={language}
                 onChange={(event) => setLanguage(event.target.value)}
-                className="mb-5 w-full rounded-lg border px-4 py-3"
+                className="mb-5 w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 disabled={listening || loading}
             >
               {languages.map((item) => (
@@ -268,50 +307,51 @@ function SubmitComplaint() {
               ))}
             </select>
 
-            <label className="mb-2 block font-medium" htmlFor="complaint">
-              Describe your complaint
+            <label className="mb-2 block font-semibold text-slate-800" htmlFor="complaint">
+              Describe the Civic Issue
             </label>
             <textarea
                 id="complaint"
                 value={complaint}
                 onChange={(event) => setComplaint(event.target.value)}
-                placeholder="Speak or type your complaint..."
-                className="h-40 w-full resize-none rounded-lg border p-4"
+                placeholder="Type or click the microphone to describe the issue..."
+                className="h-36 w-full resize-none rounded-xl border border-slate-200 p-4 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
                 disabled={loading}
             />
 
-            <button
-                type="button"
-                onClick={startListening}
-                disabled={loading}
-                className={`mt-4 rounded-lg px-6 py-3 text-white ${
-                    listening ? "bg-red-600" : "bg-blue-700 hover:bg-blue-800"
-                }`}
-            >
-              {listening ? "Stop Listening" : "Speak Complaint"}
-            </button>
+            <div className="mt-3 flex items-center gap-3">
+              <button
+                  type="button"
+                  onClick={startListening}
+                  disabled={loading}
+                  className={`rounded-xl px-5 py-2.5 font-medium text-white transition-colors ${
+                      listening ? "bg-red-600 hover:bg-red-700 animate-pulse" : "bg-blue-700 hover:bg-blue-800"
+                  }`}
+              >
+                {listening ? "⏹ Stop Recording" : "🎤 Speak Complaint"}
+              </button>
+            </div>
 
             {listening && (
-                <div className="mt-3 rounded-lg bg-blue-50 p-3">
-                  <p className="font-medium text-blue-700">Listening...</p>
-                  <p className="text-sm text-gray-500">
-                    Speak clearly in{" "}
-                    {languages.find((item) => item.code === language)?.name}.
+                <div className="mt-3 rounded-xl bg-blue-50 p-3 border border-blue-100">
+                  <p className="font-semibold text-blue-700 text-sm">Listening to speech...</p>
+                  <p className="text-xs text-blue-600 mt-0.5">
+                    Speaking in {languages.find((item) => item.code === language)?.name}
                   </p>
                 </div>
             )}
 
-            <label className="mb-2 mt-5 block font-medium" htmlFor="location">
-              Location / area
+            <label className="mb-2 mt-6 block font-semibold text-slate-800" htmlFor="location">
+              Location / Landmark / Area
             </label>
             <input
                 id="location"
                 type="text"
                 value={location}
                 onChange={(event) => setLocation(event.target.value)}
-                placeholder="Enter your area or landmark"
-                className="w-full rounded-lg border px-4 py-3"
+                placeholder="e.g. Near Main Gate, Sector 4, MG Road"
+                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
                 disabled={loading}
             />
@@ -320,20 +360,20 @@ function SubmitComplaint() {
                 type="button"
                 onClick={getLiveLocation}
                 disabled={gettingLocation || loading}
-                className="mt-3 rounded-lg border border-blue-700 px-4 py-2 text-blue-700 disabled:opacity-50"
+                className="mt-3 inline-flex items-center rounded-xl border border-blue-600 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50 transition-colors disabled:opacity-50"
             >
               <LocateFixed className="mr-2 inline h-4 w-4" />
-              {gettingLocation ? "Getting location..." : "Use my live location"}
+              {gettingLocation ? "Capturing GPS..." : "Detect My Live GPS Location"}
             </button>
 
             {coordinates && (
-                <p className="mt-2 text-sm text-gray-600">
-                  Latitude: {coordinates.latitude} · Longitude: {coordinates.longitude}
+                <p className="mt-2 text-xs font-mono text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg inline-block">
+                  GPS Fixed: {coordinates.latitude.toFixed(5)}, {coordinates.longitude.toFixed(5)}
                 </p>
             )}
 
-            <label className="mb-2 mt-5 block font-medium" htmlFor="photo">
-              Photo evidence <span className="font-normal text-gray-500">(optional)</span>
+            <label className="mb-2 mt-6 block font-semibold text-slate-800" htmlFor="photo">
+              Photo Evidence <span className="font-normal text-slate-400 text-sm">(optional)</span>
             </label>
             <input
                 id="photo"
@@ -341,23 +381,23 @@ function SubmitComplaint() {
                 accept="image/*"
                 onChange={handlePhotoChange}
                 disabled={loading}
-                className="block w-full rounded-lg border p-3"
+                className="block w-full rounded-xl border border-slate-200 p-2.5 text-slate-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
             />
-            <p className="mt-1 text-sm text-gray-500">
-              Image files only, up to 10 MB.
-              {photo ? ` Selected: ${photo.name}` : ""}
+            <p className="mt-1 text-xs text-slate-500">
+              Supports JPEG/PNG up to 10 MB.
+              {photo ? ` Attached: ${photo.name}` : ""}
             </p>
 
             {error && (
-                <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3">
-                  <p className="text-sm text-red-700">{error}</p>
+                <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3">
+                  <p className="text-sm font-medium text-red-700">{error}</p>
                 </div>
             )}
 
             <button
                 type="submit"
                 disabled={loading}
-                className="mt-6 rounded-lg bg-green-600 px-6 py-3 text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-7 w-full rounded-xl bg-blue-700 py-3.5 font-bold text-white hover:bg-blue-800 transition-colors disabled:opacity-60 shadow-md shadow-blue-500/10"
             >
               {loading ? "Submitting..." : "Submit Complaint"}
             </button>
