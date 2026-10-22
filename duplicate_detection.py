@@ -3,7 +3,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 
-# Complaints already stored in our system
+# Complaints already stored in our system (sample data)
 existing_complaints = [
     {
         "id": 101,
@@ -21,26 +21,26 @@ existing_complaints = [
 
 
 def detect_duplicates(new_description):
-    # Get the descriptions of existing complaints
+    # Get descriptions of existing complaints
     old_descriptions = [
         complaint["description"]
         for complaint in existing_complaints
     ]
 
-    # Combine old descriptions with the new one
+    # Combine existing complaints with the new complaint
     all_descriptions = old_descriptions + [new_description]
 
-    # Convert text into numerical features
+    # Convert text into numerical features using TF-IDF
     vectorizer = TfidfVectorizer(ngram_range=(1, 2))
     vectors = vectorizer.fit_transform(all_descriptions)
 
-    # Compare the new complaint with every old complaint
+    # Calculate similarity between the new complaint and existing ones
     similarities = cosine_similarity(
         vectors[-1],
         vectors[:-1]
     )[0]
 
-    # Store complaints that cross our threshold
+    # Identify potential duplicates
     threshold = 0.25
     matches = []
 
@@ -52,7 +52,7 @@ def detect_duplicates(new_description):
                 "similarity": round(float(score) * 100, 2)
             })
 
-    # Show the best match first
+    # Sort matches by highest similarity
     matches.sort(
         key=lambda item: item["similarity"],
         reverse=True
@@ -62,16 +62,20 @@ def detect_duplicates(new_description):
 
 
 # Test the program
-new_complaint = input("Enter a new civic complaint: ")
+if __name__ == "__main__":
+    new_complaint = input("Enter a new civic complaint: ").strip()
 
-matches = detect_duplicates(new_complaint)
+    if not new_complaint:
+        print("Please enter a valid complaint.")
+    else:
+        matches = detect_duplicates(new_complaint)
 
-if matches:
-    print("\nPotential duplicate complaints found:")
+        if matches:
+            print("\nPotential duplicate complaints found:")
 
-    for match in matches:
-        print(f"\nComplaint ID: {match['id']}")
-        print(f"Description: {match['description']}")
-        print(f"Similarity: {match['similarity']}%")
-else:
-    print("\nNo potential duplicates found.")
+            for match in matches:
+                print(f"\nComplaint ID: {match['id']}")
+                print(f"Description: {match['description']}")
+                print(f"Similarity: {match['similarity']}%")
+        else:
+            print("\nNo potential duplicates found.")
