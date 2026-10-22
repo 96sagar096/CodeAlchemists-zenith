@@ -68,6 +68,19 @@ training_data = {
     "Nearby intersections are flooded after rainfall",
     "The road has standing water following a storm",
     ],
+    
+    "Electrical Hazard": [
+        "A live wire is hanging near the road",
+        "An exposed electric wire is dangerous",
+        "A fallen electric pole is blocking the street",
+        "Electric wires are sparking near the market",
+        "There is a risk of electrocution near the school",
+        "A broken street electrical cable is exposed",
+        "An electric pole has fallen on the road",
+        "A transformer is emitting sparks",
+        "A damaged electrical wire is hanging near the hostel",
+        "People may get electrocuted by this exposed wire",
+    ],
     "Other": [
         "There is a stray dog near the road",
         "The park needs more benches",
@@ -162,7 +175,7 @@ def classify_complaint(description):
     confidence = round(float(best_probability) * 100, 2)
     margin = float(best_probability - second_probability)
 
-    needs_review = margin < 0.10
+    needs_review = margin < 0.10 or best_probability < 0.50
 
     return {
         "category": model.classes_[best_index],
