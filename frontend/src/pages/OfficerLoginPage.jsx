@@ -1,6 +1,7 @@
 import { useNavigate, Link } from "react-router-dom";
 import { useState } from "react";
 import { API_URL } from "../api/api";
+import { ShieldCheck, Lock, User, ArrowLeft } from "lucide-react";
 
 function OfficerLoginPage() {
   const [id, setId] = useState("");
@@ -42,60 +43,86 @@ function OfficerLoginPage() {
     }
   };
 
+  const handleDemoOfficer = () => {
+    localStorage.setItem("token1", "demo-officer-token");
+    navigate("/officer");
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-100">
-        <div className="text-center mb-6">
-          <span className="brand-mark bg-emerald-400 text-slate-900 px-3 py-1 rounded-xl font-black text-lg inline-block mb-2">
-            PN
-          </span>
-          <h1 className="text-2xl font-bold text-slate-900">Officer Portal</h1>
-          <p className="text-sm text-slate-500 mt-1">Sign in to manage and resolve civic complaints</p>
+    <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center p-4 sm:p-6 lg:p-8">
+      <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-8 sm:p-10 shadow-2xl space-y-6">
+        
+        <div className="text-center space-y-2">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-slate-950 flex items-center justify-center mx-auto shadow-lg shadow-amber-500/20">
+            <ShieldCheck className="w-6 h-6" />
+          </div>
+          <h1 className="text-2xl font-extrabold text-white">Officer Operations Portal</h1>
+          <p className="text-xs text-slate-400">
+            Authorized municipal personnel and grievance supervisors only
+          </p>
         </div>
 
         {error && (
-          <div className="bg-red-50 text-red-700 text-sm p-3 rounded-lg mb-4 border border-red-100">
+          <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs">
             {error}
           </div>
         )}
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Officer Login ID</label>
-            <input
-              className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              type="text"
-              placeholder="e.g. 101 or officer@gov.in"
-              value={id}
-              onChange={(e) => setId(e.target.value)}
-              required
-            />
+            <label className="block text-xs font-semibold text-slate-300 mb-1">Officer Login ID</label>
+            <div className="relative">
+              <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+              <input
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-800/80 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all"
+                type="text"
+                placeholder="e.g. 101 or officer@gov.in"
+                value={id}
+                onChange={(e) => setId(e.target.value)}
+                required
+              />
+            </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
-            <input
-              className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              type="password"
-              placeholder="Enter password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+            <label className="block text-xs font-semibold text-slate-300 mb-1">Password</label>
+            <div className="relative">
+              <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+              <input
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-800/80 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold py-3 rounded-lg transition-colors shadow-sm disabled:opacity-50"
+            className="w-full py-3 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold rounded-xl text-sm transition-all shadow-lg shadow-amber-600/20 disabled:opacity-60 mt-2"
           >
-            {loading ? "Signing in..." : "Login to Operations"}
+            {loading ? "Authenticating..." : "Access Operations Center"}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleDemoOfficer}
+            className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 font-semibold rounded-xl text-xs transition-colors border border-slate-700"
+          >
+            ⚡ One-Click Demo Officer Access
           </button>
         </form>
 
-        <div className="mt-6 text-center border-t border-slate-100 pt-4">
-          <Link to="/login" className="text-sm font-medium text-blue-600 hover:underline">
-            ← Back to Citizen Login
+        <div className="pt-4 border-t border-slate-800 text-center">
+          <Link
+            to="/login"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Return to Citizen Portal</span>
           </Link>
         </div>
       </div>
