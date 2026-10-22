@@ -1,0 +1,13 @@
+package org.example.localproblemsolver;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+
+@SpringBootTest
+class LocalProblemSolverApplicationTests {
+
+    @Test
+    void contextLoads() {
+    }
+
+}
