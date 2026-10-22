@@ -22,7 +22,7 @@ public class CorsConfig {
         //         List.of("http://localhost:5173"
         //                 ,"http://10.141.89.163:5173")
         // );
-        configuration.setAllowedOrigins(List.of("*"));
+        configuration.setAllowedOrigins(List.of("https://codealchemists-zenith-3t0s.onrender.com"));
         configuration.setAllowedMethods(
                 List.of("GET", "POST", "PUT", "DELETE", "OPTIONS" , "PATCH")
         );
