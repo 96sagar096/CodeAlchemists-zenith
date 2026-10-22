@@ -1,28 +1,9 @@
 import { useEffect, useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { Link } from "react-router-dom"
+import Navbar from "../components/Navbar"
+import { getComplaints } from "../data/mockData"
 
 const API_URL = import.meta.env.VITE_API_URL
-
-function Navbar() {
-  const navigate = useNavigate()
-  const logout = () => {
-    localStorage.removeItem("token")
-    navigate("/login")
-  }
-  return (
-    <nav className="site-nav">
-      <Link to="/dashboard" className="nav-brand">
-        <span className="brand-mark">PN</span> Problem Nivaran
-      </Link>
-      <div className="nav-links">
-        <Link to="/dashboard">Dashboard</Link>
-        <Link to="/submit">Submit Complaint</Link>
-        <Link to="/history">History</Link>
-        <button onClick={logout}>Logout</button>
-      </div>
-    </nav>
-  )
-}
 
 export default function Dashboard() {
   const [complaints, setComplaints] = useState([])
@@ -33,12 +14,18 @@ export default function Dashboard() {
       try {
         const token = localStorage.getItem("token")
         const res = await fetch(`${API_URL}/api/complaint/my`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
         })
         if (!res.ok) throw new Error(`Error: ${res.status}`)
-        setComplaints(await res.json())
+        const data = await res.json()
+        if (Array.isArray(data) && data.length > 0) {
+          setComplaints(data)
+          return
+        }
+        setComplaints(getComplaints())
       } catch (err) {
-        console.log("You have an error:", err)
+        console.log("Backend offline or request failed, using local data:", err)
+        setComplaints(getComplaints())
       } finally {
         setLoading(false)
       }
@@ -46,10 +33,11 @@ export default function Dashboard() {
     load()
   }, [])
 
-  const total = complaints.length
-  const resolved = complaints.filter((c) => c.status === "RESOLVED").length
+  const list = Array.isArray(complaints) ? complaints : []
+  const total = list.length
+  const resolved = list.filter((c) => String(c.status).toUpperCase() === "RESOLVED").length
   const pending = total - resolved
-  const high = complaints.filter((c) => c.severity === "HIGH").length
+  const high = list.filter((c) => String(c.severity || c.priority).toUpperCase() === "HIGH" || String(c.priority).toUpperCase() === "CRITICAL").length
 
   const stats = [
     ["Total Complaints", total],
@@ -83,24 +71,28 @@ export default function Dashboard() {
           <div className="list">
             {loading ? (
               <p className="empty">Loading...</p>
-            ) : complaints.length === 0 ? (
+            ) : list.length === 0 ? (
               <p className="empty">No complaints found.</p>
             ) : (
-              complaints.map((c) => (
-                <Link key={c.complaintId} to={`/complaints/${c.complaintId}`} className="item">
-                  <div>
-                    <h3>{c.department}</h3>
-                    <p>{c.description}</p>
-                    <small>Complaint ID: #{c.complaintId}</small>
-                    <small>Created: {new Date(c.createdAt).toLocaleString()}</small>
-                  </div>
-                  <div className="item-right">
-                    <span className={`badge ${c.status === "RESOLVED" ? "badge--done" : "badge--open"}`}>{c.status}</span>
-                    <p className={`sev sev--${c.severity}`}>{c.severity}</p>
-                    <small>{c.location || "Location not available"}</small>
-                  </div>
-                </Link>
-              ))
+              list.map((c) => {
+                const id = c.complaintId || c.incidentId || c.id
+                const isResolved = String(c.status).toUpperCase() === "RESOLVED"
+                return (
+                  <Link key={id} to={`/complaints/${id}`} className="item">
+                    <div>
+                      <h3>{c.title || c.department || c.category}</h3>
+                      <p>{c.description}</p>
+                      <small>Complaint ID: #{id}</small>
+                      <small>Created: {c.createdAt ? new Date(c.createdAt).toLocaleDateString() : c.date || "Recent"}</small>
+                    </div>
+                    <div className="item-right">
+                      <span className={`badge ${isResolved ? "badge--done" : "badge--open"}`}>{c.status}</span>
+                      <p className={`sev sev--${c.severity || c.priority}`}>{c.priority || c.severity}</p>
+                      <small>{c.location || "Location not available"}</small>
+                    </div>
+                  </Link>
+                )
+              })
             )}
           </div>
         </div>
