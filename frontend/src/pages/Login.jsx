@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
+import "./Login.css";
 
 // Same env pattern as your project: VITE_API_URL in .env
 const API_URL = import.meta.env.VITE_API_URL
